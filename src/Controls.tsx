@@ -46,8 +46,15 @@ export const Controls = () => {
         color: 'white',
       }}
     >
-      <label htmlFor="GPUEnabled">
-        GPU Enabled
+      <label
+        htmlFor="GPUEnabled"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+        }}
+      >
+        GPU Optimized
         <input
           id="GPUEnabled"
           type="checkbox"
