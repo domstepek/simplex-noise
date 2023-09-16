@@ -3,16 +3,23 @@ import ShaderCanvas from './ShaderCanvas';
 
 import FramerateCounter from './FramerateCounter';
 
-import './index.css';
+import { withAppContext, useAppContext } from './App.context';
 
-function App() {
+import './index.css';
+import Controls from './Controls';
+
+const App = () => {
+  const { GPUEnabled } = useAppContext();
+
   return (
     <>
-      {/* <Basic /> */}
-      <ShaderCanvas />
+      {GPUEnabled ? <ShaderCanvas /> : <Basic />}
       <FramerateCounter />
+      <Controls />
     </>
   );
-}
+};
 
-export default App;
+const AppWithAppContext = withAppContext(App);
+
+export default AppWithAppContext;
