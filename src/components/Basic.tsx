@@ -130,13 +130,10 @@ const Basic = () => {
 
   return (
     <div
+      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
       style={{
         width: canvasWidth,
         height: canvasHeight,
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        translate: '-50% -50%',
       }}
     >
       <canvas ref={canvasRef} width={canvasWidth} height={canvasHeight} />

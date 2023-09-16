@@ -16,7 +16,7 @@ type Setter<T> = Dispatch<SetStateAction<T>>;
 const defaultState = {
   noise: NoiseValues,
   color: ColorValues,
-  GPUEnabled: false,
+  GPUEnabled: true,
   status: 'running',
   setNoise: (() => {}) as Setter<typeof NoiseValues>,
   setColor: (() => {}) as Setter<typeof ColorValues>,
@@ -29,7 +29,7 @@ const AppContext = createContext(defaultState);
 export const AppContextProvider: FC<PropsWithChildren> = ({ children }) => {
   const [noise, setNoise] = useState(NoiseValues);
   const [color, setColor] = useState(ColorValues);
-  const [GPUEnabled, setGPUEnabled] = useState(false);
+  const [GPUEnabled, setGPUEnabled] = useState(true);
   const [status, setStatus] = useState<Status>('running');
 
   return (

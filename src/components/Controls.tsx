@@ -1,6 +1,8 @@
+import { useState } from 'react';
+
 import { useAppContext } from '../App.context';
 
-import { ColorValues, NoiseRangeOptions } from '../App.constants';
+import { ColorValues, ColorOptions, NoiseRangeOptions } from '../App.constants';
 
 export const Controls = () => {
   const {
@@ -13,6 +15,8 @@ export const Controls = () => {
     GPUEnabled,
     setGPUEnabled,
   } = useAppContext();
+
+  const [visible, setVisible] = useState(false);
 
   const updateNoise =
     (property: keyof typeof noise) =>
@@ -32,103 +36,96 @@ export const Controls = () => {
       }));
     };
 
+  const toggleControlsVisible = () => {
+    if ('startViewTransition' in document) {
+      document.startViewTransition!(() => {
+        setVisible((prev) => !prev);
+      });
+    } else {
+      setVisible((prev) => !prev);
+    }
+  };
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        bottom: 0,
-        left: 0,
-        padding: '1rem',
-        background: 'rgba(0, 0, 0, 0.5)',
-        color: 'white',
-      }}
-    >
-      <label
-        htmlFor="GPUEnabled"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-        }}
-      >
-        GPU Optimized
-        <input
-          id="GPUEnabled"
-          type="checkbox"
-          checked={GPUEnabled}
-          onChange={(e) => setGPUEnabled(e.target.checked)}
-        />
-      </label>
-      <button
-        onClick={() =>
-          setStatus((prev) => (prev === 'running' ? 'paused' : 'running'))
-        }
-        style={{
-          alignSelf: 'flex-start',
-        }}
-      >
-        {status === 'running' ? 'Pause' : 'Resume'}
-      </button>
-      {Object.entries(color).map(([key, value]) => {
-        const keyName = key as keyof typeof ColorValues;
-
-        return (
-          <label
-            key={keyName}
-            htmlFor={keyName}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-            }}
+    <div className="absolute flex flex-col gap-4 bottom-0 left-0 p-4 bg-black bg-opacity-50 text-white text-xs shadow-lg">
+      <div className="flex items-center gap-4 justify-between">
+        <label htmlFor="GPUEnabled" className="flex items-center gap-4">
+          GPU Optimized
+          <input
+            id="GPUEnabled"
+            type="checkbox"
+            checked={GPUEnabled}
+            onChange={(e) => setGPUEnabled(e.target.checked)}
+          />
+        </label>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() =>
+              setStatus((prev) => (prev === 'running' ? 'paused' : 'running'))
+            }
+            className="self-start px-4 py-2 rounded-md shadow-md bg-stone-400"
           >
-            <input
-              id={keyName}
-              type="color"
-              value={value}
-              onChange={updateColor(keyName)}
-            />
-            {keyName} ({value})
-          </label>
-        );
-      })}
+            {status === 'running' ? 'Pause' : 'Resume'}
+          </button>
 
-      {Object.entries(noise).map(([key, value]) => {
-        const keyName = key as keyof typeof NoiseRangeOptions;
-
-        const [display, min, max, step] = NoiseRangeOptions[keyName];
-
-        return (
-          <label
-            key={keyName}
-            htmlFor={keyName}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              width: '600px',
-              gap: '1rem',
-              justifyContent: 'space-between',
-            }}
+          <button
+            onClick={toggleControlsVisible}
+            className="self-start px-4 py-2 rounded-md shadow-md bg-stone-400"
           >
-            <input
-              id={keyName}
-              type="range"
-              value={value}
-              min={min}
-              max={max}
-              step={step}
-              onChange={updateNoise(keyName)}
-              style={{
-                width: '325px',
-              }}
-            />
-            {display} ({value})
-          </label>
-        );
-      })}
+            {visible ? 'Hide' : 'Show'} Controls
+          </button>
+        </div>
+      </div>
+      <div
+        className={`flex-col gap-4 ${visible ? 'flex' : 'hidden'}`}
+        id="control-box"
+      >
+        {Object.entries(color).map(([key, value]) => {
+          const keyName = key as keyof typeof ColorValues;
+
+          const [display] = ColorOptions[keyName];
+
+          return (
+            <label
+              key={keyName}
+              htmlFor={keyName}
+              className="flex items-center gap-4"
+            >
+              <input
+                id={keyName}
+                type="color"
+                value={value}
+                onChange={updateColor(keyName)}
+              />
+              {display} ({value})
+            </label>
+          );
+        })}
+        {Object.entries(noise).map(([key, value]) => {
+          const keyName = key as keyof typeof NoiseRangeOptions;
+          const [display, min, max, step] = NoiseRangeOptions[keyName];
+
+          return (
+            <label
+              key={keyName}
+              htmlFor={keyName}
+              className="flex items-center gap-4 w-[600px] justify-between whitespace-nowrap"
+            >
+              <input
+                id={keyName}
+                type="range"
+                value={value}
+                min={min}
+                max={max}
+                step={step}
+                onChange={updateNoise(keyName)}
+                className="w-[325px]"
+              />
+              {display} ({value})
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 };

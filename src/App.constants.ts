@@ -19,6 +19,11 @@ export const NoiseRangeOptions = {
   freq: ['Frequency, amount of noise', 0, 4, 0.05],
   amp: ['Amplitude, noise speed', 0, 1, 0.005],
   hardness: ['Hardness, noise contrast', 0, 5, 0.05],
-  octaves: ['Octaves, noise detail', 0, 12, 0.5],
+  octaves: ['Octaves, noise detail', 0, 12, 1],
   lacunarity: ['Lacunarity, noise detail multiplier', 0, 2, 0.005],
+} as const;
+
+export const ColorOptions = {
+  primaryColor: ['Primary Color'],
+  secondaryColor: ['Secondary Color'],
 } as const;

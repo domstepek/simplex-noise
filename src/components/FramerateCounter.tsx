@@ -24,16 +24,7 @@ const FramerateCounter = () => {
   }, [setFPS]);
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '1rem',
-        left: '1rem',
-        fontSize: '1.5rem',
-        color: 'white',
-        backgroundColor: 'black',
-      }}
-    >
+    <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-2 text-sm">
       {fps} FPS
     </div>
   );
