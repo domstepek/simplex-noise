@@ -2,9 +2,9 @@ import { ElementRef, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useWindowSize } from 'react-use';
 
-import { simplex3_Fractal } from './utils/simplex-noise-1';
-import { hexToRgb } from './utils/misc';
-import { useAppContext } from './App.context';
+import { simplex3_Fractal } from '../utils/simplex-noise-1';
+import { hexToRgb } from '../utils/misc';
+import { useAppContext } from '../App.context';
 
 const CONFIG = {
   scale: 1,

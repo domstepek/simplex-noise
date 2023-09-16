@@ -1,6 +1,6 @@
-import { useAppContext } from './App.context';
+import { useAppContext } from '../App.context';
 
-import { ColorValues, NoiseRangeOptions } from './App.constants';
+import { ColorValues, NoiseRangeOptions } from '../App.constants';
 
 export const Controls = () => {
   const {

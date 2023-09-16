@@ -1,10 +1,10 @@
 import React, { FC, Suspense, useRef } from 'react';
 
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
-import { NoiseShaderMaterial } from './shader/material';
-import { hexToThreeVector } from './utils/misc';
+import { NoiseShaderMaterial } from '../shader/material';
+import { hexToThreeVector } from '../utils/misc';
 
-import { useAppContext } from './App.context';
+import { useAppContext } from '../App.context';
 
 extend({ NoiseShaderMaterial });
 

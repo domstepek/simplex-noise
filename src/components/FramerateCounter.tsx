@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useDebouncedValue } from './hooks/useDebouncedValue';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const FramerateCounter = () => {
   const [fps, setFPS] = useDebouncedValue(0, 40);

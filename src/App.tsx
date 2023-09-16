@@ -1,19 +1,29 @@
-import Basic from './Basic';
-import ShaderCanvas from './ShaderCanvas';
+import { Suspense, lazy } from 'react';
 
-import FramerateCounter from './FramerateCounter';
+import FramerateCounter from './components/FramerateCounter';
+import Controls from './components/Controls';
 
 import { withAppContext, useAppContext } from './App.context';
 
 import './index.css';
-import Controls from './Controls';
+
+const Basic = lazy(() => import('./components/Basic'));
+const ShaderCanvas = lazy(() => import('./components/ShaderCanvas'));
 
 const App = () => {
   const { GPUEnabled } = useAppContext();
 
   return (
     <>
-      {GPUEnabled ? <ShaderCanvas /> : <Basic />}
+      <Suspense
+        fallback={
+          <div className="w-screen h-screen flex justify-center items-center">
+            <p>Loading...</p>
+          </div>
+        }
+      >
+        {GPUEnabled ? <ShaderCanvas /> : <Basic />}
+      </Suspense>
       <FramerateCounter />
       <Controls />
     </>
