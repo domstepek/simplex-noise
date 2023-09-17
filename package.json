@@ -13,6 +13,7 @@
     "@react-three/drei": "^9.83.9",
     "@react-three/fiber": "^8.14.1",
     "@types/three": "^0.156.0",
+    "@webgpu/types": "^0.1.34",
     "autoprefixer": "^10.4.15",
     "glslify": "^7.1.1",
     "postcss": "^8.4.29",
