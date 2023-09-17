@@ -114,7 +114,7 @@ class Renderer {
 
     this.colorBuffer = this.device.createBuffer({
       // 4 bytes per float/uint and 6 floats/uints (8 bytes for padding)
-      size: 32,
+      size: 4 * 8,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -250,16 +250,19 @@ class Renderer {
 
     const colorArray = new Float32Array([
       // 4 bytes of padding
-      0,
       ...this.colorSettings.primaryColor,
+      0,
       ...this.colorSettings.secondaryColor,
-      // 4 bytes of padding
       0,
     ]);
 
-    console.log(colorArray);
-
-    this.device.queue.writeBuffer(this.colorBuffer, 0, colorArray);
+    this.device.queue.writeBuffer(
+      this.colorBuffer,
+      0,
+      colorArray.buffer,
+      colorArray.byteOffset,
+      colorArray.byteLength
+    );
   }
 
   render() {

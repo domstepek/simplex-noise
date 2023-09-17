@@ -15,8 +15,8 @@ struct NoiseSettings {
 }
 
 struct ColorSettings {
-  @location(0) primaryColor: vec3f,
-  @location(1) secondaryColor: vec3f,
+  primaryColor: vec3f,
+  secondaryColor: vec3f,
 }
 
 @binding(0) @group(0) var<uniform> transform: Transform;
@@ -168,8 +168,8 @@ fn fs_main(fragData: VertexOut) -> @location(0) vec4f
   // map noise to 0-1 range
   noise = (noise + 1.0) * 0.5;
 
-  var _color1 = colorSettings.primaryColor / 255.0;
-  var _color2 = colorSettings.secondaryColor / 255.0;
+  var _color1 = colorSettings.primaryColor * 0.00392156862;
+  var _color2 = colorSettings.secondaryColor * 0.00392156862;
 
   var mixColor = mix(_color1, _color2, noise);
 

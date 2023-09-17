@@ -58,6 +58,7 @@ export const Controls = () => {
           >
             Pure JS
             <input
+              readOnly
               id="basic"
               type="radio"
               name="renderer"
@@ -72,6 +73,7 @@ export const Controls = () => {
           >
             WebGL
             <input
+              readOnly
               id="webgl"
               type="radio"
               name="renderer"
@@ -86,6 +88,7 @@ export const Controls = () => {
           >
             WebGPU
             <input
+              readOnly
               id="webgpu"
               type="radio"
               name="renderer"
