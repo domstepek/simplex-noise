@@ -12,6 +12,7 @@ export const NoiseShaderMaterial = shaderMaterial(
     uLacunarity: 0,
     uPrimaryColor: [0, 0, 0],
     uSecondaryColor: [0, 0, 0],
+    uClamp: false,
   },
   // Vertex shader
   glsl`
@@ -41,6 +42,8 @@ export const NoiseShaderMaterial = shaderMaterial(
 
     uniform vec3 uPrimaryColor;
     uniform vec3 uSecondaryColor;
+
+    uniform bool uClamp;
     
     varying vec2 vUv;
 
@@ -138,6 +141,10 @@ export const NoiseShaderMaterial = shaderMaterial(
       float noise = snoise3_fractal(vec3(vUv * uFreq, lTime)) * uHardness;
       // map from [-1, 1] to [0, 1]
       noise = (noise + 1.0) / 2.0;
+
+      if (uClamp) {
+        noise = clamp(noise, 0.0, 1.0);
+      }
 
       vec3 color = mix(uPrimaryColor / 255.0, uSecondaryColor / 255.0, noise);
 

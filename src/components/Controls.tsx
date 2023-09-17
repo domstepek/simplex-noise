@@ -12,6 +12,8 @@ export const Controls = () => {
     setNoise,
     color,
     setColor,
+    clamp,
+    setClamp,
     renderer,
     setRenderer,
   } = useAppContext();
@@ -120,6 +122,19 @@ export const Controls = () => {
         className={`flex-col gap-4 ${visible ? 'flex' : 'hidden'}`}
         id="control-box"
       >
+        <label
+          htmlFor="clamp"
+          className="flex items-center gap-1 cursor-pointer"
+        >
+          <input
+            id="clamp"
+            type="checkbox"
+            checked={clamp}
+            onChange={() => setClamp((prev) => !prev)}
+          />
+          Clamp Colors (Prevents hardness from allowing colors to go out of
+          range)
+        </label>
         {Object.entries(color).map(([key, value]) => {
           const keyName = key as keyof typeof ColorValues;
 

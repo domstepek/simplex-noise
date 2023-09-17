@@ -21,6 +21,7 @@ class Renderer {
   timeBuffer: GPUBuffer | undefined;
   noiseBuffer: GPUBuffer | undefined;
   colorBuffer: GPUBuffer | undefined;
+  clampBuffer: GPUBuffer | undefined;
 
   bindGroup: GPUBindGroup | undefined;
   pipeline: GPURenderPipeline | undefined;
@@ -42,6 +43,9 @@ class Renderer {
     primaryColor: hexToVectorArray(ColorValues.primaryColor),
     secondaryColor: hexToVectorArray(ColorValues.secondaryColor),
   };
+
+  // Binding Group 4
+  clampSettings = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -80,7 +84,7 @@ class Renderer {
     this.context.configure({
       device: this.device,
       format: this.format,
-      alphaMode: 'opaque',
+      alphaMode: 'premultiplied',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
@@ -118,9 +122,16 @@ class Renderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    this.clampBuffer = this.device.createBuffer({
+      // 4 bytes per float/uint and 1 float/uint
+      size: 4 * 1,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
     this.updateModelViewProjectionMatrix();
     this.updateNoiseSettings();
     this.updateColorSettings();
+    this.updateClampSettings();
 
     const bindGroupLayout = this.device.createBindGroupLayout({
       entries: [
@@ -141,6 +152,11 @@ class Renderer {
         },
         {
           binding: 3,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: {},
+        },
+        {
+          binding: 4,
           visibility: GPUShaderStage.FRAGMENT,
           buffer: {},
         },
@@ -172,6 +188,12 @@ class Renderer {
           binding: 3,
           resource: {
             buffer: this.colorBuffer,
+          },
+        },
+        {
+          binding: 4,
+          resource: {
+            buffer: this.clampBuffer,
           },
         },
       ],
@@ -248,21 +270,30 @@ class Renderer {
       throw new Error('UniformBuffer not initialized');
     }
 
-    const colorArray = new Float32Array([
-      // 4 bytes of padding
-      ...this.colorSettings.primaryColor,
-      0,
-      ...this.colorSettings.secondaryColor,
-      0,
-    ]);
+    const ColorSettingsValues = new ArrayBuffer(32);
+    const ColorSettingsViews = {
+      primaryColor: new Float32Array(ColorSettingsValues, 0, 3),
+      secondaryColor: new Float32Array(ColorSettingsValues, 16, 3),
+    };
 
-    this.device.queue.writeBuffer(
-      this.colorBuffer,
-      0,
-      colorArray.buffer,
-      colorArray.byteOffset,
-      colorArray.byteLength
-    );
+    ColorSettingsViews.primaryColor.set(this.colorSettings.primaryColor);
+    ColorSettingsViews.secondaryColor.set(this.colorSettings.secondaryColor);
+
+    this.device.queue.writeBuffer(this.colorBuffer, 0, ColorSettingsValues);
+  }
+
+  updateClampSettings() {
+    if (!this.device) {
+      throw new Error('Device not initialized');
+    }
+
+    if (!this.clampBuffer) {
+      throw new Error('UniformBuffer not initialized');
+    }
+
+    const clampArray = new Float32Array([this.clampSettings ? 1 : 0]);
+
+    this.device.queue.writeBuffer(this.clampBuffer, 0, clampArray);
   }
 
   render() {

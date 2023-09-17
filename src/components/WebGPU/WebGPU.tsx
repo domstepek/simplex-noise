@@ -19,6 +19,7 @@ const WebGPU = () => {
   const {
     noise: { freq, amp, hardness, octaves, lacunarity },
     color: { primaryColor, secondaryColor },
+    clamp,
   } = useAppContext();
 
   const [gpuSupport, setGPUSupport] = useState<{
@@ -97,6 +98,14 @@ const WebGPU = () => {
 
     renderer.current.updateColorSettings();
   }, [primaryColor, secondaryColor]);
+
+  useEffect(() => {
+    if (!renderer.current) return;
+
+    renderer.current.clampSettings = clamp;
+
+    renderer.current.updateClampSettings();
+  }, [clamp]);
 
   if (!gpuSupport.supported && gpuSupport.error) {
     return (

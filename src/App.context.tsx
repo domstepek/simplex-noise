@@ -10,18 +10,18 @@ import {
 import { NoiseValues, ColorValues } from './App.constants';
 
 type Status = 'running' | 'paused';
-
 type Renderer = 'basic' | 'webgl' | 'webgpu';
-
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
 const defaultState = {
   noise: NoiseValues,
   color: ColorValues,
-  renderer: 'basic' as Renderer,
+  clamp: false,
+  renderer: 'webgpu' as Renderer,
   status: 'running' as Status,
   setNoise: (() => {}) as Setter<typeof NoiseValues>,
   setColor: (() => {}) as Setter<typeof ColorValues>,
+  setClamp: (() => {}) as Setter<boolean>,
   setRenderer: (() => {}) as Setter<Renderer>,
   setStatus: (() => {}) as Setter<Status>,
 };
@@ -31,7 +31,9 @@ const AppContext = createContext(defaultState);
 export const AppContextProvider: FC<PropsWithChildren> = ({ children }) => {
   const [noise, setNoise] = useState(NoiseValues);
   const [color, setColor] = useState(ColorValues);
-  const [renderer, setRenderer] = useState<Renderer>('basic');
+  const [clamp, setClamp] = useState(false);
+
+  const [renderer, setRenderer] = useState<Renderer>('webgpu');
   const [status, setStatus] = useState<Status>('running');
 
   return (
@@ -39,10 +41,12 @@ export const AppContextProvider: FC<PropsWithChildren> = ({ children }) => {
       value={{
         noise,
         color,
+        clamp,
         renderer,
         status,
         setNoise,
         setColor,
+        setClamp,
         setRenderer,
         setStatus,
       }}

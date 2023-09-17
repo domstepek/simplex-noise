@@ -12,6 +12,7 @@ const Noise: FC = () => {
   const {
     noise: { freq, amp, hardness, octaves, lacunarity },
     color: { primaryColor, secondaryColor },
+    clamp,
     status,
   } = useAppContext();
 
@@ -39,6 +40,7 @@ const Noise: FC = () => {
           uLacunarity: lacunarity,
           uPrimaryColor: hexToThreeVector(primaryColor),
           uSecondaryColor: hexToThreeVector(secondaryColor),
+          uClamp: clamp,
         }}
       />
     </mesh>

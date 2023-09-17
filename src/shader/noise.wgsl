@@ -9,7 +9,7 @@ struct Time {
 struct NoiseSettings {
   @location(0) frequency: f32,
   @location(1) amplitude: f32,
-  @location(2) hardness: f32,
+  @location(2) roughness: f32,
   @location(3) octaves: f32,
   @location(4) lacunarity: f32,
 }
@@ -19,6 +19,10 @@ struct ColorSettings {
   secondaryColor: vec3f,
 }
 
+struct ClampSettings {
+  clamp: i32,
+}
+
 @binding(0) @group(0) var<uniform> transform: Transform;
 
 @binding(1) @group(0) var<uniform> time: Time;
@@ -26,6 +30,8 @@ struct ColorSettings {
 @binding(2) @group(0) var<uniform> noiseSettings: NoiseSettings;
 
 @binding(3) @group(0) var<uniform> colorSettings: ColorSettings;
+
+@binding(4) @group(0) var<uniform> clampSettings: ClampSettings;
 
 struct VertexIn {
   @location(0) position : vec2f
@@ -163,10 +169,15 @@ fn fs_main(fragData: VertexOut) -> @location(0) vec4f
 
   var uv = get_uvs(fragData.position.xy);
 
-  var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
-  var noise: f32 = snoise3_fractal(vec3f(uv * noiseSettings.frequency, lTime)) * noiseSettings.hardness;
+  // var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
+  var lTime = time.offset * noiseSettings.amplitude;
+  var noise: f32 = snoise3_fractal(vec3f(uv * noiseSettings.frequency, lTime)) * noiseSettings.roughness;
   // map noise to 0-1 range
-  noise = (noise + 1.0) * 0.5;
+  noise = mix(0.0, 1.0, noise);
+  
+  if (clampSettings.clamp == 0) {
+    noise = clamp(noise, 0.0, 1.0);
+  }
 
   var _color1 = colorSettings.primaryColor * 0.00392156862;
   var _color2 = colorSettings.secondaryColor * 0.00392156862;

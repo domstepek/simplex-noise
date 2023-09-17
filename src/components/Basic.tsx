@@ -14,6 +14,7 @@ const Basic = () => {
   const {
     noise: { freq, amp, hardness, octaves, lacunarity },
     color: { primaryColor, secondaryColor },
+    clamp,
   } = useAppContext();
 
   const canvasRef = useRef<ElementRef<'canvas'>>(null);
@@ -56,6 +57,10 @@ const Basic = () => {
             ) * hardness;
           value = (value + 1) / 2; // From  [-1, 1] to [0, 1]
 
+          if (clamp) {
+            value = Math.min(Math.max(value, 0), 1);
+          }
+
           // Interpolate between the colors in the gradient
           const color = { r: 0, g: 0, b: 0 };
           for (let i = 0; i < gradient.length - 1; i++) {
@@ -97,6 +102,7 @@ const Basic = () => {
       octaves,
       lacunarity,
       gradient,
+      clamp,
     ]
   );
 
