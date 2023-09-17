@@ -12,8 +12,8 @@ export const Controls = () => {
     setNoise,
     color,
     setColor,
-    GPUEnabled,
-    setGPUEnabled,
+    renderer,
+    setRenderer,
   } = useAppContext();
 
   const [visible, setVisible] = useState(false);
@@ -49,15 +49,52 @@ export const Controls = () => {
   return (
     <div className="absolute flex flex-col gap-4 bottom-0 left-0 p-4 bg-black bg-opacity-50 text-white text-xs shadow-lg">
       <div className="flex items-center gap-4 justify-between">
-        <label htmlFor="GPUEnabled" className="flex items-center gap-4">
-          GPU Optimized
-          <input
-            id="GPUEnabled"
-            type="checkbox"
-            checked={GPUEnabled}
-            onChange={(e) => setGPUEnabled(e.target.checked)}
-          />
-        </label>
+        {/* Create a radio button group for renderer */}
+        <div className="flex items-center gap-4">
+          <label
+            htmlFor="basic"
+            onClick={() => setRenderer('basic')}
+            className="flex items-center gap-1 cursor-pointer"
+          >
+            Pure JS
+            <input
+              id="basic"
+              type="radio"
+              name="renderer"
+              value="basic"
+              checked={renderer === 'basic'}
+            />
+          </label>
+          <label
+            htmlFor="webgl"
+            onClick={() => setRenderer('webgl')}
+            className="flex items-center gap-1 cursor-pointer"
+          >
+            WebGL
+            <input
+              id="webgl"
+              type="radio"
+              name="renderer"
+              value="webgl"
+              checked={renderer === 'webgl'}
+            />
+          </label>
+          <label
+            htmlFor="webgpu"
+            onClick={() => setRenderer('webgpu')}
+            className="flex items-center gap-1 cursor-pointer"
+          >
+            WebGPU
+            <input
+              id="webgpu"
+              type="radio"
+              name="renderer"
+              value="webgpu"
+              checked={renderer === 'webgpu'}
+            />
+          </label>
+        </div>
+
         <div className="flex items-center gap-4">
           <button
             onClick={() =>

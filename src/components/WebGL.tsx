@@ -45,7 +45,7 @@ const Noise: FC = () => {
   );
 };
 
-const ShaderCanvas = () => {
+const WebGL = () => {
   return (
     <Canvas>
       <Suspense fallback={null}>
@@ -55,4 +55,4 @@ const ShaderCanvas = () => {
   );
 };
 
-export default ShaderCanvas;
+export default WebGL;

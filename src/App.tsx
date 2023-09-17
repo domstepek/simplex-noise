@@ -7,12 +7,18 @@ import { withAppContext, useAppContext } from './App.context';
 
 import './index.css';
 
-const WebGPU = lazy(() => import('./components/WebGPU'));
 const Basic = lazy(() => import('./components/Basic'));
-// const ShaderCanvas = lazy(() => import('./components/ShaderCanvas'));
+const WebGPU = lazy(() => import('./components/WebGPU'));
+const WebGL = lazy(() => import('./components/WebGL'));
 
 const App = () => {
-  const { GPUEnabled } = useAppContext();
+  const { renderer } = useAppContext();
+
+  const Renderer = {
+    basic: Basic,
+    webgpu: WebGPU,
+    webgl: WebGL,
+  }[renderer];
 
   return (
     <>
@@ -23,7 +29,7 @@ const App = () => {
           </div>
         }
       >
-        {GPUEnabled ? <WebGPU /> : <Basic />}
+        <Renderer />
       </Suspense>
       <FramerateCounter />
       <Controls />
