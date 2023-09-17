@@ -4,8 +4,10 @@ import { useEffect, useState, ElementRef, useRef } from 'react';
 import { useWindowSize } from 'react-use';
 
 // Utils
+import { useAppContext } from '../../App.context';
 import Renderer from './renderer';
 import { WebGPUInitError } from './utils';
+import { hexToVectorArray } from '../../utils/misc';
 
 // Types
 import { WebGPUErrorType } from './types';
@@ -14,6 +16,11 @@ import { WebGPUErrorType } from './types';
 import { WebGPUErrors } from './constants';
 
 const WebGPU = () => {
+  const {
+    noise: { freq, amp, hardness, octaves, lacunarity },
+    color: { primaryColor, secondaryColor },
+  } = useAppContext();
+
   const [gpuSupport, setGPUSupport] = useState<{
     supported: boolean;
     error: WebGPUErrorType | null;
@@ -65,6 +72,31 @@ const WebGPU = () => {
       }
     };
   }, [canvasRef]);
+
+  useEffect(() => {
+    if (!renderer.current) return;
+
+    renderer.current.noiseSettings = {
+      freq,
+      amp,
+      hardness,
+      octaves,
+      lacunarity,
+    };
+
+    renderer.current.updateNoiseSettings();
+  }, [freq, amp, hardness, octaves, lacunarity]);
+
+  useEffect(() => {
+    if (!renderer.current) return;
+
+    renderer.current.colorSettings = {
+      primaryColor: hexToVectorArray(primaryColor),
+      secondaryColor: hexToVectorArray(secondaryColor),
+    };
+
+    renderer.current.updateColorSettings();
+  }, [primaryColor, secondaryColor]);
 
   if (!gpuSupport.supported && gpuSupport.error) {
     return (

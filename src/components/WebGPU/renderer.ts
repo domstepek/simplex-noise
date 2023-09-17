@@ -7,7 +7,8 @@ import { WebGPUInitError } from './utils';
 import { GradientMesh } from './mesh';
 
 // Constants
-import { NoiseValues } from '../../App.constants';
+import { NoiseValues, ColorValues } from '../../App.constants';
+import { hexToVectorArray } from '../../utils/misc';
 
 class Renderer {
   canvas: HTMLCanvasElement;
@@ -19,21 +20,34 @@ class Renderer {
   format: GPUTextureFormat | undefined;
 
   // Pipeline Objects
+  transformBuffer: GPUBuffer | undefined;
   timeBuffer: GPUBuffer | undefined;
-  uniformBuffer: GPUBuffer | undefined;
+  noiseBuffer: GPUBuffer | undefined;
+  colorBuffer: GPUBuffer | undefined;
+
   bindGroup: GPUBindGroup | undefined;
   pipeline: GPURenderPipeline | undefined;
 
   // Assets
   gradientMesh: GradientMesh | undefined;
 
-  // Bindings
+  // Binding Group 1
   time: number = 0;
-  frequency: number = NoiseValues.freq;
-  amplitude: number = NoiseValues.amp;
-  hardness: number = NoiseValues.hardness;
-  octaves: number = NoiseValues.octaves;
-  lacunarity: number = NoiseValues.lacunarity;
+
+  // Binding Group 2
+  noiseSettings = {
+    freq: NoiseValues.freq,
+    amp: NoiseValues.amp,
+    hardness: NoiseValues.hardness,
+    octaves: NoiseValues.octaves,
+    lacunarity: NoiseValues.lacunarity,
+  };
+
+  // Binding Group 3
+  colorSettings = {
+    primaryColor: hexToVectorArray(ColorValues.primaryColor),
+    secondaryColor: hexToVectorArray(ColorValues.secondaryColor),
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -74,6 +88,7 @@ class Renderer {
       device: this.device,
       format: this.format,
       alphaMode: 'opaque',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
 
@@ -82,7 +97,10 @@ class Renderer {
       throw new Error('Device not initialized');
     }
 
-    this.gradientMesh = new GradientMesh(this.device);
+    this.gradientMesh = new GradientMesh(this.device, {
+      width: this.canvas.width,
+      height: this.canvas.height,
+    });
   }
 
   createPipeline() {
@@ -98,9 +116,9 @@ class Renderer {
       code: shader,
     });
 
-    this.uniformBuffer = this.device.createBuffer({
-      // 4 bytes per float/uint and 5 floats/uints
-      size: 4 * 5,
+    this.transformBuffer = this.device.createBuffer({
+      // 4 bytes per float/uint and 2 floats/uints
+      size: 4 * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -110,7 +128,21 @@ class Renderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    this.updateUniforms();
+    this.noiseBuffer = this.device.createBuffer({
+      // 4 bytes per float/uint and 5 floats/uints
+      size: 4 * 5,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.colorBuffer = this.device.createBuffer({
+      // 4 bytes per float/uint and 6 floats/uints (8 bytes for padding)
+      size: 32,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.updateModelViewProjectionMatrix();
+    this.updateNoiseSettings();
+    this.updateColorSettings();
 
     const bindGroupLayout = this.device.createBindGroupLayout({
       entries: [
@@ -124,6 +156,16 @@ class Renderer {
           visibility: GPUShaderStage.FRAGMENT,
           buffer: {},
         },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: {},
+        },
+        {
+          binding: 3,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: {},
+        },
       ],
     });
 
@@ -133,13 +175,25 @@ class Renderer {
         {
           binding: 0,
           resource: {
-            buffer: this.timeBuffer,
+            buffer: this.transformBuffer,
           },
         },
         {
           binding: 1,
           resource: {
-            buffer: this.uniformBuffer,
+            buffer: this.timeBuffer,
+          },
+        },
+        {
+          binding: 2,
+          resource: {
+            buffer: this.noiseBuffer,
+          },
+        },
+        {
+          binding: 3,
+          resource: {
+            buffer: this.colorBuffer,
           },
         },
       ],
@@ -153,7 +207,6 @@ class Renderer {
       vertex: {
         module: shaderModule,
         entryPoint: 'vs_main',
-        buffers: [this.gradientMesh.bufferLayout],
       },
       fragment: {
         module: shaderModule,
@@ -164,37 +217,71 @@ class Renderer {
           },
         ],
       },
-      // primitive: {
-      //   topology: 'triangle-list',
-      // },
+      primitive: {
+        topology: 'triangle-list',
+      },
       layout: pipelineLayout,
     });
   }
 
-  updateUniforms() {
+  updateModelViewProjectionMatrix() {
     if (!this.device) {
       throw new Error('Device not initialized');
     }
 
-    if (!this.uniformBuffer) {
+    if (!this.transformBuffer) {
+      throw new Error('ModelViewProjectionBuffer not initialized');
+    }
+
+    const transformArray = new Float32Array([
+      this.canvas.width,
+      this.canvas.height,
+    ]);
+
+    this.device.queue.writeBuffer(this.transformBuffer, 0, transformArray);
+  }
+
+  updateNoiseSettings() {
+    if (!this.device) {
+      throw new Error('Device not initialized');
+    }
+
+    if (!this.noiseBuffer) {
       throw new Error('UniformBuffer not initialized');
     }
 
-    const uniformArray = new Float32Array([
-      this.frequency,
-      this.amplitude,
-      this.hardness,
-      this.octaves,
-      this.lacunarity,
+    const noiseArray = new Float32Array([
+      this.noiseSettings.freq,
+      this.noiseSettings.amp,
+      this.noiseSettings.hardness,
+      this.noiseSettings.octaves,
+      this.noiseSettings.lacunarity,
     ]);
 
-    this.device.queue.writeBuffer(
-      this.uniformBuffer,
+    this.device.queue.writeBuffer(this.noiseBuffer, 0, noiseArray);
+  }
+
+  updateColorSettings() {
+    if (!this.device) {
+      throw new Error('Device not initialized');
+    }
+
+    if (!this.colorBuffer) {
+      throw new Error('UniformBuffer not initialized');
+    }
+
+    const colorArray = new Float32Array([
+      // 4 bytes of padding
       0,
-      uniformArray.buffer,
-      uniformArray.byteOffset,
-      uniformArray.byteLength
-    );
+      ...this.colorSettings.primaryColor,
+      ...this.colorSettings.secondaryColor,
+      // 4 bytes of padding
+      0,
+    ]);
+
+    console.log(colorArray);
+
+    this.device.queue.writeBuffer(this.colorBuffer, 0, colorArray);
   }
 
   render() {
@@ -241,22 +328,16 @@ class Renderer {
       ],
     });
     renderpass.setPipeline(this.pipeline);
-    renderpass.setVertexBuffer(0, this.gradientMesh.buffer);
+    // renderpass.setVertexBuffer(0, this.gradientMesh.buffer);
 
     this.time += 0.01;
 
     const timeArray = new Float32Array([this.time]);
 
-    this.device.queue.writeBuffer(
-      this.timeBuffer,
-      0,
-      timeArray.buffer,
-      timeArray.byteOffset,
-      timeArray.byteLength
-    );
+    this.device.queue.writeBuffer(this.timeBuffer, 0, timeArray);
 
     renderpass.setBindGroup(0, this.bindGroup);
-    renderpass.draw(3, 1, 0, 0);
+    renderpass.draw(6, 1, 0, 0);
     renderpass.end();
 
     this.device.queue.submit([commandEncoder.finish()]);

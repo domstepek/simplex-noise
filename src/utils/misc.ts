@@ -18,3 +18,9 @@ export const hexToThreeVector = (hex: string): THREE.Vector3 => {
 
   return new THREE.Vector3(r, g, b);
 };
+
+export const hexToVectorArray = (hex: string): number[] => {
+  const { r, g, b } = hexToRgb(hex);
+
+  return [r, g, b];
+};
