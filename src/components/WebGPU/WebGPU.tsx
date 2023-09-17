@@ -1,14 +1,17 @@
-import { useEffect, useState, ElementRef } from 'react';
+import { useEffect, useState, ElementRef, useRef } from 'react';
 
-import {
-  WebGPUInitError,
-  getContext,
-  getWebGPUDevice,
-  renderImage,
-} from './utils';
-import { WebGPUErrorType } from './types';
-import { WebGPUErrors } from './constants';
+// Packages
 import { useWindowSize } from 'react-use';
+
+// Utils
+import Renderer from './renderer';
+import { WebGPUInitError } from './utils';
+
+// Types
+import { WebGPUErrorType } from './types';
+
+// Constants
+import { WebGPUErrors } from './constants';
 
 const WebGPU = () => {
   const [gpuSupport, setGPUSupport] = useState<{
@@ -21,14 +24,18 @@ const WebGPU = () => {
 
   const [canvasRef, setCanvasRef] = useState<ElementRef<'canvas'> | null>(null);
 
+  const renderer = useRef<Renderer | null>(null);
+
   const windowSize = useWindowSize();
 
   useEffect(() => {
-    let device: GPUDevice;
-
     const initializeWebGPU = async () => {
+      if (!canvasRef) return;
+
+      renderer.current = new Renderer(canvasRef);
+
       try {
-        device = await getWebGPUDevice();
+        await renderer.current.init();
 
         setGPUSupport({
           supported: true,
@@ -45,34 +52,19 @@ const WebGPU = () => {
         return;
       }
 
-      if (!canvasRef || !device) return;
-
-      let context: GPUCanvasContext;
-
-      try {
-        context = getContext(canvasRef, device);
-      } catch (error) {
-        if (error instanceof WebGPUInitError) {
-          setGPUSupport({
-            supported: false,
-            error: error.type,
-          });
-        }
-
-        return;
-      }
-
-      renderImage(context, device);
+      renderer.current.render();
     };
 
     initializeWebGPU();
 
     return () => {
-      if (device) device.destroy();
+      if (renderer.current?.device) {
+        renderer.current.device.destroy();
+      }
     };
   }, [canvasRef]);
 
-  if (!gpuSupport.supported) {
+  if (!gpuSupport.supported && gpuSupport.error) {
     return (
       <div className="w-screen h-screen flex justify-center items-center">
         <p>{WebGPUErrors[gpuSupport.error!]}</p>

@@ -1,4 +1,4 @@
-export class Mesh {
+export class GradientMesh {
   buffer: GPUBuffer;
   bufferLayout: GPUVertexBufferLayout;
 
