@@ -32,10 +32,10 @@ const WebGPU = () => {
     const initializeWebGPU = async () => {
       if (!canvasRef) return;
 
-      renderer.current = new Renderer(canvasRef);
+      const _renderer = new Renderer(canvasRef);
 
       try {
-        await renderer.current.init();
+        await _renderer.init();
 
         setGPUSupport({
           supported: true,
@@ -52,7 +52,9 @@ const WebGPU = () => {
         return;
       }
 
-      renderer.current.render();
+      _renderer.render();
+
+      renderer.current = _renderer;
     };
 
     initializeWebGPU();
