@@ -3,9 +3,6 @@ import shader from '../../shader/noise.wgsl?raw';
 // Utilities
 import { WebGPUInitError } from './utils';
 
-// Meshes
-import { GradientMesh } from './mesh';
-
 // Constants
 import { NoiseValues, ColorValues } from '../../App.constants';
 import { hexToVectorArray } from '../../utils/misc';
@@ -27,9 +24,6 @@ class Renderer {
 
   bindGroup: GPUBindGroup | undefined;
   pipeline: GPURenderPipeline | undefined;
-
-  // Assets
-  gradientMesh: GradientMesh | undefined;
 
   // Binding Group 1
   time: number = 0;
@@ -55,7 +49,6 @@ class Renderer {
 
   async init() {
     await this.setupDevice();
-    this.createAssets();
     this.createPipeline();
   }
 
@@ -92,24 +85,9 @@ class Renderer {
     });
   }
 
-  createAssets() {
-    if (!this.device) {
-      throw new Error('Device not initialized');
-    }
-
-    this.gradientMesh = new GradientMesh(this.device, {
-      width: this.canvas.width,
-      height: this.canvas.height,
-    });
-  }
-
   createPipeline() {
     if (!this.device) {
       throw new Error('Device not initialized');
-    }
-
-    if (!this.gradientMesh) {
-      throw new Error('Assets not initialized');
     }
 
     const shaderModule = this.device.createShaderModule({
@@ -297,10 +275,6 @@ class Renderer {
       throw new Error('Pipeline not initialized');
     }
 
-    if (!this.gradientMesh) {
-      throw new Error('Assets not initialized');
-    }
-
     if (!this.bindGroup) {
       throw new Error('BindGroup not initialized');
     }
@@ -328,7 +302,6 @@ class Renderer {
       ],
     });
     renderpass.setPipeline(this.pipeline);
-    // renderpass.setVertexBuffer(0, this.gradientMesh.buffer);
 
     this.time += 0.01;
 
