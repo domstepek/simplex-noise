@@ -1,3 +1,22 @@
+export const TransformValues = {
+  resolution: [0, 0],
+  projection: {
+    fov: 0,
+    near: 0,
+    far: 0,
+  },
+  model: {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [0, 0, 0],
+  },
+  view: {
+    eye: [0, 0, 0],
+    center: [0, 0, 0],
+    up: [0, 0, 0],
+  },
+};
+
 export const NoiseValues = {
   freq: 0.45,
   amp: 0.14,

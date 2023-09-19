@@ -1,17 +1,39 @@
+struct ProjectionValues {
+  fov: f32,
+  aspect: f32,
+  near: f32,
+  far: f32,
+}
+
+struct ModelValues {
+  position: vec3f,
+  rotation: vec3f,
+  scale: vec3f,
+}
+
+struct ViewValues {
+  eye: vec3f,
+  center: vec3f,
+  up: vec3f,
+}
+
 struct Transform {
   resolution: vec2f,
+  @align(16) projection: ProjectionValues,
+  model: ModelValues,
+  view: ViewValues,
 }
 
 struct Time {
-  @location(0) offset: f32,
+  offset: f32,
 }
 
 struct NoiseSettings {
-  @location(0) frequency: f32,
-  @location(1) amplitude: f32,
-  @location(2) roughness: f32,
-  @location(3) octaves: f32,
-  @location(4) lacunarity: f32,
+  frequency: f32,
+  amplitude: f32,
+  roughness: f32,
+  octaves: f32,
+  lacunarity: f32,
 }
 
 struct ColorSettings {
@@ -32,41 +54,6 @@ struct ClampSettings {
 @binding(3) @group(0) var<uniform> colorSettings: ColorSettings;
 
 @binding(4) @group(0) var<uniform> clampSettings: ClampSettings;
-
-struct VertexIn {
-  @location(0) position : vec2f
-}
-
-struct VertexOut {
-  @builtin(position) position : vec4f,
-}
-
-@vertex
-fn vs_main(@builtin(vertex_index) index: u32) -> VertexOut
-{
-  var output : VertexOut;
-  
-  let pos = array<vec2<f32>, 6>(
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(1.0, 1.0),
-
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(-1.0, 1.0),
-    vec2<f32>(1.0, 1.0)
-  );
-
-  output.position = vec4<f32> (pos[index], 0.0, 1.0);
-  return output;
-}
-
-fn get_uvs(coord: vec2<f32>) -> vec2<f32> {
-  var uv = coord / transform.resolution;
-
-  uv.y = 1.0 - uv.y;
-
-  return uv;
-}
 
 fn permute(x: vec4f) -> vec4f {
   return ((x * 34.0) + 1.0) * x % 289.0;
@@ -162,12 +149,136 @@ fn snoise3_fractal(v: vec3f) -> f32 {
   return f;
 }
 
+fn map(value: f32, low1: f32, high1: f32, low2: f32, high2: f32) -> f32 {
+  return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+}
+
+fn projectionMatrix(
+  fov: f32,
+  aspect: f32,
+  near: f32,
+  far: f32
+) -> mat4x4f {
+  var top = tan(fov * 0.5) * near;
+  var bottom = -top;
+  var right = top * aspect;
+  var left = -right;
+
+  var x = (2.0 * near) / (right - left);
+  var y = (2.0 * near) / (top - bottom);
+  var a = (right + left) / (right - left);
+  var b = (top + bottom) / (top - bottom);
+  var c = -(far + near) / (far - near);
+  var d = -(2.0 * far * near) / (far - near);
+
+  return mat4x4f(
+    vec4f(x, 0.0, 0.0, 0.0),
+    vec4f(0.0, y, 0.0, 0.0),
+    vec4f(a, b, c, -1.0),
+    vec4f(0.0, 0.0, d, 0.0)
+  );
+}
+
+fn modelMatrix(
+  position: vec3f,
+  rotation: vec3f,
+  scale: vec3f
+) -> mat4x4f {
+  var x = rotation.x;
+  var y = rotation.y;
+  var z = rotation.z;
+
+  var a = cos(x);
+  var b = sin(x);
+  var c = cos(y);
+  var d = sin(y);
+  var e = cos(z);
+  var f = sin(z);
+
+  var ac = a * c;
+  var bc = b * c;
+
+  return mat4x4f(
+    vec4f(c * e, -c * f, d, 0.0),
+    vec4f(bc * e + a * f, -bc * f + a * e, -b * d, 0.0),
+    vec4f(-ac * e + b * f, ac * f + b * e, a * d, 0.0),
+    vec4f(position.x, position.y, position.z, 1.0)
+  );
+}
+
+fn lookAtMatrix(
+  eye: vec3f,
+  center: vec3f,
+  up: vec3f
+) -> mat4x4f {
+  var z = normalize(eye - center);
+  var x = normalize(cross(up, z));
+  var y = normalize(cross(z, x));
+
+  return mat4x4f(
+    vec4f(x.x, y.x, z.x, 0.0),
+    vec4f(x.y, y.y, z.y, 0.0),
+    vec4f(x.z, y.z, z.z, 0.0),
+    vec4f(-dot(x, eye), -dot(y, eye), -dot(z, eye), 1.0)
+  );
+}
+
+fn get_uvs(coord: vec3f) -> vec4f {
+  var t_v = map(time.offset / 20., 0., 1., 0., 360.);
+
+  var fov = 45.;
+  var aspect = 1.;
+  var near = 0.1;
+  var far = 100.;
+
+  var position = vec3f(0., 0., -10.);
+  var rotation = vec3f(0., 0., 0.);
+  var scale = vec3f(1., 1., 1.);
+
+  var eye = vec3f(0., 0., 0.);
+  var center = vec3f(0., 0., -10.);
+  var up = vec3f(0., 1., 0.);
+
+  var projection = projectionMatrix(fov, aspect, near, far);
+  var model = modelMatrix(position, rotation, scale);
+  var view = lookAtMatrix(eye, center, up);
+
+  var uv = vec4f(coord, 1.);
+
+  uv = projection * view * model * uv;
+
+  return uv;
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4f {
+  var output: vec4f;
+  
+  let pos = array<vec3f, 6>(
+    vec3f(-1., -1., 0.),
+    vec3f( 1., -1., 0.),
+    vec3f( 1.,  1., 0.),
+
+    vec3f(-1., -1., 0.),
+    vec3f(-1.,  1., 0.),
+    vec3f( 1.,  1., 0.)
+  );
+
+  output = vec4f(pos[index], 1.0);
+
+  output = normalize(get_uvs(output.xyz));
+  
+  return output;
+}
+
 @fragment
-fn fs_main(fragData: VertexOut) -> @location(0) vec4f
+fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f
 {
   var color : vec4f;
 
-  var uv = get_uvs(fragData.position.xy);
+  var uv = get_uvs(position.xyz).xy / transform.resolution.xy;
+
+  return vec4f(uv.x, 0., 0., 1.);
 
   // var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
   var lTime = time.offset * noiseSettings.amplitude + 10000;

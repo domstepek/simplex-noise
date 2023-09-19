@@ -4,7 +4,7 @@ import shader from '../../shader/noise.wgsl?raw';
 import { WebGPUInitError } from './utils';
 
 // Constants
-import { NoiseValues, ColorValues } from '../../App.constants';
+import { NoiseValues, ColorValues, TransformValues } from '../../App.constants';
 import { hexToVectorArray } from '../../utils/misc';
 
 class Renderer {
@@ -25,6 +25,9 @@ class Renderer {
 
   bindGroup: GPUBindGroup | undefined;
   pipeline: GPURenderPipeline | undefined;
+
+  // Binding Group 0
+  transform = TransformValues;
 
   // Binding Group 1
   time: number = 0;
@@ -98,9 +101,10 @@ class Renderer {
       code: shader,
     });
 
+    // #region Buffer Creation
     this.transformBuffer = this.device.createBuffer({
-      // 4 bytes per float/uint and 2 floats/uints
-      size: 4 * 2,
+      // 4 bytes per float/uint and 24 floats/uints + 4 * 8 bytes for padding
+      size: 4 * 24 + 4 * 8,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -127,76 +131,37 @@ class Renderer {
       size: 4 * 1,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+    // #endregion
 
-    this.updateModelViewProjectionMatrix();
+    this.updateModelViewProjectionSettings();
     this.updateNoiseSettings();
     this.updateColorSettings();
     this.updateClampSettings();
 
+    const bindingGroups = [
+      [this.transformBuffer, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
+      [this.timeBuffer, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
+      [this.noiseBuffer, GPUShaderStage.FRAGMENT],
+      [this.colorBuffer, GPUShaderStage.FRAGMENT],
+      [this.clampBuffer, GPUShaderStage.FRAGMENT],
+    ] as const;
+
     const bindGroupLayout = this.device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        },
-        {
-          binding: 3,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        },
-        {
-          binding: 4,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        },
-      ],
+      entries: bindingGroups.map((binding, i) => ({
+        binding: i,
+        visibility: binding[1],
+        buffer: {},
+      })),
     });
 
     this.bindGroup = this.device.createBindGroup({
       layout: bindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: this.transformBuffer,
-          },
+      entries: bindingGroups.map((binding, i) => ({
+        binding: i,
+        resource: {
+          buffer: binding[0],
         },
-        {
-          binding: 1,
-          resource: {
-            buffer: this.timeBuffer,
-          },
-        },
-        {
-          binding: 2,
-          resource: {
-            buffer: this.noiseBuffer,
-          },
-        },
-        {
-          binding: 3,
-          resource: {
-            buffer: this.colorBuffer,
-          },
-        },
-        {
-          binding: 4,
-          resource: {
-            buffer: this.clampBuffer,
-          },
-        },
-      ],
+      })),
     });
 
     const pipelineLayout = this.device.createPipelineLayout({
@@ -218,13 +183,13 @@ class Renderer {
         ],
       },
       primitive: {
-        topology: 'triangle-list',
+        topology: 'triangle-strip',
       },
       layout: pipelineLayout,
     });
   }
 
-  updateModelViewProjectionMatrix() {
+  updateModelViewProjectionSettings() {
     if (!this.device) {
       throw new Error('Device not initialized');
     }
@@ -238,7 +203,42 @@ class Renderer {
       this.canvas.height,
     ]);
 
-    this.device.queue.writeBuffer(this.transformBuffer, 0, transformArray);
+    const TransformValues = new ArrayBuffer(128);
+    const TransformViews = {
+      resolution: new Float32Array(TransformValues, 0, 2),
+      projection: {
+        fov: new Float32Array(TransformValues, 8, 1),
+        aspect: new Float32Array(TransformValues, 12, 1),
+        near: new Float32Array(TransformValues, 16, 1),
+        far: new Float32Array(TransformValues, 20, 1),
+      },
+      model: {
+        position: new Float32Array(TransformValues, 32, 3),
+        rotation: new Float32Array(TransformValues, 48, 3),
+        scale: new Float32Array(TransformValues, 64, 3),
+      },
+      view: {
+        eye: new Float32Array(TransformValues, 80, 3),
+        center: new Float32Array(TransformValues, 96, 3),
+        up: new Float32Array(TransformValues, 112, 3),
+      },
+    };
+
+    TransformViews.resolution.set(transformArray);
+    TransformViews.projection.fov.set([this.transform.projection.fov]);
+    TransformViews.projection.aspect.set([
+      this.canvas.width / this.canvas.height,
+    ]);
+    TransformViews.projection.near.set([this.transform.projection.near]);
+    TransformViews.projection.far.set([this.transform.projection.far]);
+    TransformViews.model.position.set(this.transform.model.position);
+    TransformViews.model.rotation.set(this.transform.model.rotation);
+    TransformViews.model.scale.set(this.transform.model.scale);
+    TransformViews.view.eye.set(this.transform.view.eye);
+    TransformViews.view.center.set(this.transform.view.center);
+    TransformViews.view.up.set(this.transform.view.up);
+
+    this.device.queue.writeBuffer(this.transformBuffer, 0, TransformValues);
   }
 
   updateNoiseSettings() {
@@ -338,7 +338,6 @@ class Renderer {
     renderpass.setPipeline(this.pipeline);
 
     this.time += 0.01;
-
     const timeArray = new Float32Array([this.time]);
 
     this.device.queue.writeBuffer(this.timeBuffer, 0, timeArray);
@@ -349,9 +348,7 @@ class Renderer {
 
     this.device.queue.submit([commandEncoder.finish()]);
 
-    requestAnimationFrame(() => {
-      this.render.bind(this)();
-    });
+    requestAnimationFrame(() => this.render.bind(this)());
   }
 }
 
