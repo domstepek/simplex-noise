@@ -207,10 +207,10 @@ class Renderer {
     const TransformViews = {
       resolution: new Float32Array(TransformValues, 0, 2),
       projection: {
-        fov: new Float32Array(TransformValues, 8, 1),
-        aspect: new Float32Array(TransformValues, 12, 1),
-        near: new Float32Array(TransformValues, 16, 1),
-        far: new Float32Array(TransformValues, 20, 1),
+        fov: new Float32Array(TransformValues, 16, 1),
+        aspect: new Float32Array(TransformValues, 20, 1),
+        near: new Float32Array(TransformValues, 24, 1),
+        far: new Float32Array(TransformValues, 28, 1),
       },
       model: {
         position: new Float32Array(TransformValues, 32, 3),

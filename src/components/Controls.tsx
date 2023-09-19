@@ -1,13 +1,51 @@
-import { useState } from 'react';
+import React, { FC, useState } from 'react';
 
 import { useAppContext } from '../App.context';
 
 import { ColorValues, ColorOptions, NoiseRangeOptions } from '../App.constants';
 
+interface RangeSliderProps {
+  display: string;
+  min: number;
+  max: number;
+  step: number;
+  value: any;
+  onChange: React.InputHTMLAttributes<HTMLInputElement>;
+}
+
+const RangeSlider: FC<RangeSliderProps> = ({
+  display,
+  min,
+  max,
+  step,
+  value,
+  onChange
+}) => {
+  return (
+    <label
+      className="flex items-center gap-4 w-[600px] justify-between whitespace-nowrap"
+    >
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={onChange}
+        className="w-[325px]"
+      />
+      {display} ({value})
+    </label>
+  );
+}
+
+
 export const Controls = () => {
   const {
     status,
     setStatus,
+    transform,
+    setTransform,
     noise,
     setNoise,
     color,
@@ -18,7 +56,37 @@ export const Controls = () => {
     setRenderer,
   } = useAppContext();
 
+  type TransformType = typeof transform;
+
+
   const [visible, setVisible] = useState(false);
+
+  const updateTransform =
+    <TProp extends keyof TransformType, TSubProp extends keyof (TransformType[TProp])>(property: TProp, value: TSubProp, index?: number) =>
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTransform((prev) => {
+          if (index !== undefined) {
+            const oldArr = prev[property][value];
+            const newArr = [...oldArr.slice(0, index), Number(e.target.value), ...oldArr.slice(index, oldArr.length)];
+
+            return {
+              ...prev,
+              [property]: {
+                ...prev[property],
+                [value]: newArr,
+              }
+            }
+          }
+
+          return {
+            ...prev,
+            [property]: {
+              ...prev[property],
+              [value]: index !== undefined ? Number(e.target.value)
+            }
+          };
+        });
+      };
 
   const updateNoise =
     (property: keyof typeof noise) =>
@@ -61,14 +129,12 @@ export const Controls = () => {
         {/* Create a radio button group for renderer */}
         <div className="flex items-center gap-4">
           <label
-            htmlFor="basic"
             onClick={() => setRenderer('basic')}
             className="flex items-center gap-1 cursor-pointer"
           >
             Pure JS
             <input
               readOnly
-              id="basic"
               type="radio"
               name="renderer"
               value="basic"
@@ -76,14 +142,12 @@ export const Controls = () => {
             />
           </label>
           <label
-            htmlFor="webgl"
             onClick={() => setRenderer('webgl')}
             className="flex items-center gap-1 cursor-pointer"
           >
             WebGL
             <input
               readOnly
-              id="webgl"
               type="radio"
               name="renderer"
               value="webgl"
@@ -91,14 +155,12 @@ export const Controls = () => {
             />
           </label>
           <label
-            htmlFor="webgpu"
             onClick={() => setRenderer('webgpu')}
             className="flex items-center gap-1 cursor-pointer"
           >
             WebGPU
             <input
               readOnly
-              id="webgpu"
               type="radio"
               name="renderer"
               value="webgpu"
@@ -130,11 +192,9 @@ export const Controls = () => {
         id="control-box"
       >
         <label
-          htmlFor="clamp"
           className="flex items-center gap-1 cursor-pointer"
         >
           <input
-            id="clamp"
             type="checkbox"
             checked={clamp}
             onChange={() => setClamp((prev) => !prev)}
@@ -150,12 +210,9 @@ export const Controls = () => {
 
             return (
               <label
-                key={keyName}
-                htmlFor={keyName}
                 className="flex items-center gap-4"
               >
                 <input
-                  id={keyName}
                   type="color"
                   value={value}
                   onChange={updateColor(keyName)}
@@ -168,29 +225,20 @@ export const Controls = () => {
             {"\u21F3"}
           </button>
         </div>
+        <RangeSlider display="X" min={0} max={10} step={1} value={transform.model.position} onChange={updateTransform('projection', 'position', 0)} />
+        <RangeSlider display="Far" min={0} max={120} step={1} value={transform.projection.far} onChange={updateTransform('projection', 'far')} />
+
         {Object.entries(noise).map(([key, value]) => {
-          const keyName = key as keyof typeof NoiseRangeOptions;
-          const [display, min, max, step] = NoiseRangeOptions[keyName];
+          const [display, min, max, step] = NoiseRangeOptions[key as keyof typeof NoiseRangeOptions];
 
           return (
-            <label
-              key={keyName}
-              htmlFor={keyName}
-              className="flex items-center gap-4 w-[600px] justify-between whitespace-nowrap"
-            >
-              <input
-                id={keyName}
-                type="range"
-                value={value}
-                min={min}
-                max={max}
-                step={step}
-                onChange={updateNoise(keyName)}
-                className="w-[325px]"
-              />
-              {display} ({value})
-            </label>
-          );
+            <RangeSlider
+              key={key}
+              {...{
+                display, min, max, step, value, onChange: updateNoise(key)
+              }}
+            />
+          )
         })}
       </div>
     </div>

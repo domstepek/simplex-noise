@@ -239,7 +239,9 @@ fn get_uvs(coord: vec3f) -> vec4f {
   var center = vec3f(0., 0., -10.);
   var up = vec3f(0., 1., 0.);
 
-  var projection = projectionMatrix(fov, aspect, near, far);
+  // var projection = projectionMatrix(fov, aspect, near, far);
+  // var projection = projectionMatrix(transform.projection.fov, transform.projection.aspect, transform.projection.near, transform.projection.far);
+  var projection = projectionMatrix(fov, aspect, near, 100.);
   var model = modelMatrix(position, rotation, scale);
   var view = lookAtMatrix(eye, center, up);
 
@@ -278,7 +280,7 @@ fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f
 
   var uv = get_uvs(position.xyz).xy / transform.resolution.xy;
 
-  return vec4f(uv.x, 0., 0., 1.);
+  return vec4f(transform.projection.fov / 120, 0., 0., 1.);
 
   // var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
   var lTime = time.offset * noiseSettings.amplitude + 10000;

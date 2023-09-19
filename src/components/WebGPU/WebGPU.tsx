@@ -17,6 +17,13 @@ import { WebGPUErrors } from './constants';
 
 const WebGPU = () => {
   const {
+    transform: {
+      projection: {
+        fov,
+        far,
+        near,
+      }
+    },
     noise: { freq, amp, hardness, octaves, lacunarity },
     color: { primaryColor, secondaryColor },
     clamp,
@@ -73,6 +80,16 @@ const WebGPU = () => {
       }
     };
   }, [canvasRef]);
+
+  useEffect(() => {
+    if (!renderer.current) return;
+
+    renderer.current.transform.projection = {
+      fov, far, near
+    };
+
+    renderer.current.updateModelViewProjectionSettings();
+  }, [fov, far, near]);
 
   useEffect(() => {
     if (!renderer.current) return;
