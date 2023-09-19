@@ -22,21 +22,21 @@ export const Controls = () => {
 
   const updateNoise =
     (property: keyof typeof noise) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setNoise((prev) => ({
-        ...prev,
-        [property]: Number(e.target.value),
-      }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNoise((prev) => ({
+          ...prev,
+          [property]: Number(e.target.value),
+        }));
+      };
 
   const updateColor =
     (property: keyof typeof color) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setColor((prev) => ({
-        ...prev,
-        [property]: e.target.value,
-      }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setColor((prev) => ({
+          ...prev,
+          [property]: e.target.value,
+        }));
+      };
 
   const toggleControlsVisible = () => {
     if ('startViewTransition' in document) {
@@ -47,6 +47,13 @@ export const Controls = () => {
       setVisible((prev) => !prev);
     }
   };
+
+  const swapColors = () => {
+    setColor(prev => ({
+      primaryColor: prev.secondaryColor,
+      secondaryColor: prev.primaryColor
+    }));
+  }
 
   return (
     <div className="absolute flex flex-col gap-4 bottom-0 left-0 p-4 bg-black bg-opacity-50 text-white text-xs shadow-lg">
@@ -135,27 +142,32 @@ export const Controls = () => {
           Clamp Colors (Prevents hardness from allowing colors to go out of
           range)
         </label>
-        {Object.entries(color).map(([key, value]) => {
-          const keyName = key as keyof typeof ColorValues;
+        <div className="relative flex flex-col gap-4 justify-start">
+          {Object.entries(color).map(([key, value]) => {
+            const keyName = key as keyof typeof ColorValues;
 
-          const [display] = ColorOptions[keyName];
+            const [display] = ColorOptions[keyName];
 
-          return (
-            <label
-              key={keyName}
-              htmlFor={keyName}
-              className="flex items-center gap-4"
-            >
-              <input
-                id={keyName}
-                type="color"
-                value={value}
-                onChange={updateColor(keyName)}
-              />
-              {display} ({value})
-            </label>
-          );
-        })}
+            return (
+              <label
+                key={keyName}
+                htmlFor={keyName}
+                className="flex items-center gap-4"
+              >
+                <input
+                  id={keyName}
+                  type="color"
+                  value={value}
+                  onChange={updateColor(keyName)}
+                />
+                {display} ({value})
+              </label>
+            );
+          })}
+          <button className="absolute left-[150px] top-1/2 text-lg -translate-y-1/2" onClick={swapColors}>
+            {"\u21F3"}
+          </button>
+        </div>
         {Object.entries(noise).map(([key, value]) => {
           const keyName = key as keyof typeof NoiseRangeOptions;
           const [display, min, max, step] = NoiseRangeOptions[keyName];

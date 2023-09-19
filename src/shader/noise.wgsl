@@ -170,13 +170,20 @@ fn fs_main(fragData: VertexOut) -> @location(0) vec4f
   var uv = get_uvs(fragData.position.xy);
 
   // var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
-  var lTime = time.offset * noiseSettings.amplitude;
-  var noise: f32 = snoise3_fractal(vec3f(uv * noiseSettings.frequency, lTime)) * noiseSettings.roughness;
+  var lTime = time.offset * noiseSettings.amplitude + 10000;
+  var noise: f32 = snoise3_fractal(vec3f(uv * noiseSettings.frequency, lTime));
+
+  noise = noise * noiseSettings.roughness;
+
   // map noise to 0-1 range
   noise = mix(0.0, 1.0, noise);
   
-  if (clampSettings.clamp == 0) {
-    noise = clamp(noise, 0.0, 1.0);
+  if (clampSettings.clamp != 0) {
+    if (noise < 0.) {
+      noise = 0.;
+    } else if (noise > 1.) {
+      noise = 1.;
+    }
   }
 
   var _color1 = colorSettings.primaryColor * 0.00392156862;

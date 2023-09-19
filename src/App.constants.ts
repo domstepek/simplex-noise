@@ -1,17 +1,19 @@
 export const NoiseValues = {
-  freq: 0.75,
-  amp: 0.25,
-  hardness: 1.25,
-  octaves: 8,
-  lacunarity: 1,
+  freq: 0.45,
+  amp: 0.14,
+  hardness: 1.2,
+  octaves: 2,
+  lacunarity: 0.845,
 };
 
 // HEX values for primary and secondary colors
 export const ColorValues = {
   // primaryColor: new THREE.Vector3(0, 110, 255),
-  primaryColor: '#006eff',
+  primaryColor: '#1a0084',
+  // primaryColor: '#3253FF',
   // secondaryColor: new THREE.Vector3(26, 0, 132),
-  secondaryColor: '#1a0084',
+  secondaryColor: '#3253FF',
+  // secondaryColor: '#1a0084',
 };
 
 /** Tuples of [display, min, max, step] for each noise property */

@@ -16,7 +16,7 @@ type Setter<T> = Dispatch<SetStateAction<T>>;
 const defaultState = {
   noise: NoiseValues,
   color: ColorValues,
-  clamp: false,
+  clamp: true,
   renderer: 'webgpu' as Renderer,
   status: 'running' as Status,
   setNoise: (() => {}) as Setter<typeof NoiseValues>,
@@ -31,7 +31,7 @@ const AppContext = createContext(defaultState);
 export const AppContextProvider: FC<PropsWithChildren> = ({ children }) => {
   const [noise, setNoise] = useState(NoiseValues);
   const [color, setColor] = useState(ColorValues);
-  const [clamp, setClamp] = useState(false);
+  const [clamp, setClamp] = useState(true);
 
   const [renderer, setRenderer] = useState<Renderer>('webgpu');
   const [status, setStatus] = useState<Status>('running');

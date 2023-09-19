@@ -45,7 +45,7 @@ class Renderer {
   };
 
   // Binding Group 4
-  clampSettings = false;
+  clampSettings = true;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
