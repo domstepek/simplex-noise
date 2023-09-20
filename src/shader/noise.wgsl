@@ -224,19 +224,19 @@ fn lookAtMatrix(
 }
 
 fn get_uvs(coord: vec3f) -> vec4f {
-  var t_v = map(time.offset / 20., 0., 1., 0., 360.);
+  // var t_v = map(time.offset / 20., 0., 1., 0., 360.);
 
-  var fov = 45.;
+  var fov = 90.;
   var aspect = 1.;
   var near = 0.1;
   var far = 100.;
 
-  var position = vec3f(0., 0., -10.);
-  var rotation = vec3f(0., 0., 0.);
-  var scale = vec3f(1., 1., 1.);
+  var position = transform.model.position;
+  var rotation = transform.model.rotation;
+  var scale = vec3f(vec2f(1., 1.) * 100., 1.);
 
-  var eye = vec3f(0., 0., 0.);
-  var center = vec3f(0., 0., -10.);
+  var eye = transform.view.eye;
+  var center = vec3f(0., 0., 0.);
   var up = vec3f(0., 1., 0.);
 
   // var projection = projectionMatrix(fov, aspect, near, far);
@@ -252,59 +252,66 @@ fn get_uvs(coord: vec3f) -> vec4f {
   return uv;
 }
 
+fn get_height_displacement(xyPosition: vec2f) -> f32 {
+  var noise = snoise3_fractal(vec3f(xyPosition / noiseSettings.frequency, time.offset * noiseSettings.frequency));
+  var displacement = noise * noiseSettings.amplitude;
+  return displacement;
+}
+
+struct VertexIn {
+  position: vec2f,
+}
+
+struct VertexOut {
+  @builtin(position) position: vec4f,
+  @location(0) color: vec4f,
+}
+
 @vertex
-fn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4f {
-  var output: vec4f;
-  
-  let pos = array<vec3f, 6>(
-    vec3f(-1., -1., 0.),
-    vec3f( 1., -1., 0.),
-    vec3f( 1.,  1., 0.),
+fn vs_main(@location(0) position: vec2f) -> VertexOut {
+  /*
+    This shader will displace the plane mesh like a wave. The wave works as follows:
+    - At (x,y) where y is 1 or -1, the vertex will be displaced along the z-axis according to the noise function
+    - At (x,y) where y is between -1 and 1, the vertex will be displaced along the z-axis according to a value that is smoothly interpolated between (x,1) and (x,-1)
+    - The color of the vertex will be based on the displacement, smoothly interpolating between the primary and secondary color
+  */
+   
+  var output: VertexOut;
 
-    vec3f(-1., -1., 0.),
-    vec3f(-1.,  1., 0.),
-    vec3f( 1.,  1., 0.)
-  );
+  output.position = vec4f(position, 0., 1.);
 
-  output = vec4f(pos[index], 1.0);
+  var displacement: f32 = 0.;
+  if (output.position.y == 1. || output.position.y == -1.) {
+    displacement = get_height_displacement(output.position.xy);
+  } else {
+    var displacement_y0 = get_height_displacement(vec2f(output.position.x, 1.));
+    var displacement_y1 = get_height_displacement(vec2f(output.position.x, -1.));
 
-  output = normalize(get_uvs(output.xyz));
-  
+    // interpolate between the two displacements
+    var t = map(output.position.y, -1., 1., 0., 1.);
+    displacement = mix(displacement_y0, displacement_y1, t) * noiseSettings.roughness;
+  }
+
+  // apply displacement
+  output.position.z += displacement;
+
+  // color based on displacement
+  var _primaryColor = colorSettings.primaryColor / 255.;
+  // var _primaryColor = vec3f(0.0, 0.0, 0.0);
+  var _secondaryColor = colorSettings.secondaryColor / 255.;
+  // var _secondaryColor = vec3f(1.0, 1.0, 1.0);
+  var color = mix(_primaryColor, _secondaryColor, map(displacement, -1., 1., 0., 1.));
+  output.color = vec4f(color, 1.);
+
+
+  // apply projection
+  output.position = get_uvs(output.position.xyz);
+
   return output;
 }
 
 @fragment
-fn fs_main(@builtin(position) position: vec4f) -> @location(0) vec4f
+fn fs_main(input: VertexOut) -> @location(0) vec4f
 {
-  var color : vec4f;
-
-  var uv = get_uvs(position.xyz).xy / transform.resolution.xy;
-
-  return vec4f(transform.projection.fov / 120, 0., 0., 1.);
-
-  // var lTime = sin(time.offset / 5.0) * 5.0 * noiseSettings.amplitude;
-  var lTime = time.offset * noiseSettings.amplitude + 10000;
-  var noise: f32 = snoise3_fractal(vec3f(uv * noiseSettings.frequency, lTime));
-
-  noise = noise * noiseSettings.roughness;
-
-  // map noise to 0-1 range
-  noise = mix(0.0, 1.0, noise);
-  
-  if (clampSettings.clamp != 0) {
-    if (noise < 0.) {
-      noise = 0.;
-    } else if (noise > 1.) {
-      noise = 1.;
-    }
-  }
-
-  var _color1 = colorSettings.primaryColor * 0.00392156862;
-  var _color2 = colorSettings.secondaryColor * 0.00392156862;
-
-  var mixColor = mix(_color1, _color2, noise);
-
-  color = vec4f(mixColor, 1.0);
-
-  return color;
+  return input.color;
 }

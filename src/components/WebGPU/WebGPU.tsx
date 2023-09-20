@@ -18,11 +18,9 @@ import { WebGPUErrors } from './constants';
 const WebGPU = () => {
   const {
     transform: {
-      projection: {
-        fov,
-        far,
-        near,
-      }
+      projection,
+      model: { position, rotation },
+      view,
     },
     noise: { freq, amp, hardness, octaves, lacunarity },
     color: { primaryColor, secondaryColor },
@@ -84,12 +82,24 @@ const WebGPU = () => {
   useEffect(() => {
     if (!renderer.current) return;
 
-    renderer.current.transform.projection = {
-      fov, far, near
-    };
+    renderer.current.transform.projection = projection;
+
+    renderer.current.transform.model.position = [
+      position[0] / windowSize.width,
+      position[1] / windowSize.height,
+      position[2],
+    ];
+
+    renderer.current.transform.model.rotation = [
+      (rotation[0] / 180) * Math.PI,
+      (rotation[1] / 180) * Math.PI,
+      (rotation[2] / 180) * Math.PI,
+    ];
+
+    renderer.current.transform.view = view;
 
     renderer.current.updateModelViewProjectionSettings();
-  }, [fov, far, near]);
+  }, [projection, position, rotation, view, windowSize]);
 
   useEffect(() => {
     if (!renderer.current) return;

@@ -11,7 +11,7 @@ export const TransformValues = {
     scale: [0, 0, 0],
   },
   view: {
-    eye: [0, 0, 0],
+    eye: [0, 0, 2],
     center: [0, 0, 0],
     up: [0, 0, 0],
   },

@@ -9,8 +9,8 @@ interface RangeSliderProps {
   min: number;
   max: number;
   step: number;
-  value: any;
-  onChange: React.InputHTMLAttributes<HTMLInputElement>;
+  value: number;
+  onChange: React.InputHTMLAttributes<HTMLInputElement>['onChange'];
 }
 
 const RangeSlider: FC<RangeSliderProps> = ({
@@ -19,12 +19,10 @@ const RangeSlider: FC<RangeSliderProps> = ({
   max,
   step,
   value,
-  onChange
+  onChange,
 }) => {
   return (
-    <label
-      className="flex items-center gap-4 w-[600px] justify-between whitespace-nowrap"
-    >
+    <label className="flex items-center gap-4 w-[600px] justify-between whitespace-nowrap">
       <input
         type="range"
         min={min}
@@ -37,8 +35,7 @@ const RangeSlider: FC<RangeSliderProps> = ({
       {display} ({value})
     </label>
   );
-}
-
+};
 
 export const Controls = () => {
   const {
@@ -56,55 +53,72 @@ export const Controls = () => {
     setRenderer,
   } = useAppContext();
 
-  type TransformType = typeof transform;
-
+  type TransformTypes = keyof typeof transform;
 
   const [visible, setVisible] = useState(false);
 
   const updateTransform =
-    <TProp extends keyof TransformType, TSubProp extends keyof (TransformType[TProp])>(property: TProp, value: TSubProp, index?: number) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTransform((prev) => {
-          if (index !== undefined) {
-            const oldArr = prev[property][value];
-            const newArr = [...oldArr.slice(0, index), Number(e.target.value), ...oldArr.slice(index, oldArr.length)];
-
-            return {
-              ...prev,
-              [property]: {
-                ...prev[property],
-                [value]: newArr,
-              }
-            }
-          }
+    <
+      TProp extends TransformTypes,
+      TSubProp extends keyof (typeof transform)[TProp]
+    >(
+      property: TProp,
+      value: TSubProp,
+      index: typeof property extends 'resolution'
+        ? undefined
+        : typeof property extends 'projection'
+        ? undefined
+        : number
+    ) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTransform((prev) => {
+        if (
+          !['resolution', 'projection'].includes(property) &&
+          index !== undefined
+        ) {
+          const oldArr = prev[property][value] as number[];
+          const newArr = [
+            ...oldArr.slice(0, index),
+            Number(e.target.value),
+            ...oldArr.slice(index + 1),
+          ];
 
           return {
             ...prev,
             [property]: {
               ...prev[property],
-              [value]: index !== undefined ? Number(e.target.value)
-            }
+              [value]: newArr,
+            },
           };
-        });
-      };
+        }
+
+        return {
+          ...prev,
+          [property]: {
+            ...prev[property],
+            [value]: Number(e.target.value),
+          },
+        };
+      });
+    };
 
   const updateNoise =
     (property: keyof typeof noise) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNoise((prev) => ({
-          ...prev,
-          [property]: Number(e.target.value),
-        }));
-      };
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNoise((prev) => ({
+        ...prev,
+        [property]: Number(e.target.value),
+      }));
+    };
 
   const updateColor =
     (property: keyof typeof color) =>
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        setColor((prev) => ({
-          ...prev,
-          [property]: e.target.value,
-        }));
-      };
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setColor((prev) => ({
+        ...prev,
+        [property]: e.target.value,
+      }));
+    };
 
   const toggleControlsVisible = () => {
     if ('startViewTransition' in document) {
@@ -117,11 +131,11 @@ export const Controls = () => {
   };
 
   const swapColors = () => {
-    setColor(prev => ({
+    setColor((prev) => ({
       primaryColor: prev.secondaryColor,
-      secondaryColor: prev.primaryColor
+      secondaryColor: prev.primaryColor,
     }));
-  }
+  };
 
   return (
     <div className="absolute flex flex-col gap-4 bottom-0 left-0 p-4 bg-black bg-opacity-50 text-white text-xs shadow-lg">
@@ -191,9 +205,7 @@ export const Controls = () => {
         className={`flex-col gap-4 ${visible ? 'flex' : 'hidden'}`}
         id="control-box"
       >
-        <label
-          className="flex items-center gap-1 cursor-pointer"
-        >
+        <label className="flex items-center gap-1 cursor-pointer">
           <input
             type="checkbox"
             checked={clamp}
@@ -209,9 +221,7 @@ export const Controls = () => {
             const [display] = ColorOptions[keyName];
 
             return (
-              <label
-                className="flex items-center gap-4"
-              >
+              <label className="flex items-center gap-4" key={key}>
                 <input
                   type="color"
                   value={value}
@@ -221,24 +231,76 @@ export const Controls = () => {
               </label>
             );
           })}
-          <button className="absolute left-[150px] top-1/2 text-lg -translate-y-1/2" onClick={swapColors}>
-            {"\u21F3"}
+          <button
+            className="absolute left-[150px] top-1/2 text-lg -translate-y-1/2"
+            onClick={swapColors}
+          >
+            {'\u21F3'}
           </button>
         </div>
-        <RangeSlider display="X" min={0} max={10} step={1} value={transform.model.position} onChange={updateTransform('projection', 'position', 0)} />
-        <RangeSlider display="Far" min={0} max={120} step={1} value={transform.projection.far} onChange={updateTransform('projection', 'far')} />
+        {['X', 'Y', 'Z'].map((axis, index) => (
+          <RangeSlider
+            key={axis}
+            display={`Position ${axis}`}
+            min={
+              {
+                X: -window.innerWidth / 2,
+                Y: -window.innerHeight / 2,
+                Z: -10,
+              }[axis]!
+            }
+            max={
+              {
+                X: window.innerWidth / 2,
+                Y: window.innerHeight / 2,
+                Z: 10,
+              }[axis]!
+            }
+            step={0.01}
+            onChange={updateTransform('model', 'position', index)}
+            value={transform.model.position[index]}
+          />
+        ))}
+        {['X', 'Y', 'Z'].map((axis, index) => (
+          <RangeSlider
+            key={axis}
+            display={`Rotation ${axis}`}
+            min={-180}
+            max={180}
+            step={0.01}
+            onChange={updateTransform('model', 'rotation', index)}
+            value={transform.model.rotation[index]}
+          />
+        ))}
+        {['X', 'Y', 'Z'].map((axis, index) => (
+          <RangeSlider
+            key={`Eye ${axis}`}
+            display={`Eye ${axis}`}
+            min={-10}
+            max={10}
+            step={0.01}
+            onChange={updateTransform('view', 'eye', index)}
+            value={transform.view.eye[index]}
+          />
+        ))}
 
         {Object.entries(noise).map(([key, value]) => {
-          const [display, min, max, step] = NoiseRangeOptions[key as keyof typeof NoiseRangeOptions];
+          const keyName = key as keyof typeof NoiseRangeOptions;
+          const [display, min, max, step] = NoiseRangeOptions[keyName];
 
           return (
             <RangeSlider
               key={key}
               {...{
-                display, min, max, step, value, onChange: updateNoise(key)
+                display,
+                min,
+                max,
+                step,
+                value,
+                onChange: updateNoise(keyName),
               }}
             />
-          )
+          );
         })}
       </div>
     </div>

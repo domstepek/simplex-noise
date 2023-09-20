@@ -1,5 +1,8 @@
 import shader from '../../shader/noise.wgsl?raw';
 
+// Assets
+import { PlaneMesh } from './PlaneMesh';
+
 // Utilities
 import { WebGPUInitError } from './utils';
 
@@ -25,6 +28,9 @@ class Renderer {
 
   bindGroup: GPUBindGroup | undefined;
   pipeline: GPURenderPipeline | undefined;
+
+  // Assets
+  planeMesh: PlaneMesh | undefined;
 
   // Binding Group 0
   transform = TransformValues;
@@ -79,6 +85,8 @@ class Renderer {
     this.context = <GPUCanvasContext>this.canvas.getContext('webgpu');
 
     this.format = navigator.gpu.getPreferredCanvasFormat();
+
+    this.createPlaneMesh();
 
     if (!this.context) {
       throw new WebGPUInitError('context');
@@ -139,10 +147,10 @@ class Renderer {
     this.updateClampSettings();
 
     const bindingGroups = [
-      [this.transformBuffer, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
-      [this.timeBuffer, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
-      [this.noiseBuffer, GPUShaderStage.FRAGMENT],
-      [this.colorBuffer, GPUShaderStage.FRAGMENT],
+      [this.transformBuffer, GPUShaderStage.VERTEX],
+      [this.timeBuffer, GPUShaderStage.VERTEX],
+      [this.noiseBuffer, GPUShaderStage.VERTEX],
+      [this.colorBuffer, GPUShaderStage.VERTEX],
       [this.clampBuffer, GPUShaderStage.FRAGMENT],
     ] as const;
 
@@ -172,6 +180,7 @@ class Renderer {
       vertex: {
         module: shaderModule,
         entryPoint: 'vs_main',
+        buffers: [this.planeMesh!.bufferLayout!],
       },
       fragment: {
         module: shaderModule,
@@ -187,6 +196,15 @@ class Renderer {
       },
       layout: pipelineLayout,
     });
+  }
+
+  createPlaneMesh() {
+    if (!this.device) {
+      throw new Error('Device not initialized');
+    }
+
+    const planeMesh = new PlaneMesh(this.device, 1, 1, 1.5);
+    this.planeMesh = planeMesh;
   }
 
   updateModelViewProjectionSettings() {
@@ -317,6 +335,15 @@ class Renderer {
       throw new Error('TimeBuffer not initialized');
     }
 
+    if (!this.planeMesh) {
+      throw new Error('PlaneMesh not initialized');
+    }
+
+    this.time += 0.01;
+    const timeArray = new Float32Array([this.time]);
+
+    this.device.queue.writeBuffer(this.timeBuffer, 0, timeArray);
+
     //command encoder: records draw commands for submission
     const commandEncoder: GPUCommandEncoder =
       this.device.createCommandEncoder();
@@ -336,14 +363,9 @@ class Renderer {
       ],
     });
     renderpass.setPipeline(this.pipeline);
-
-    this.time += 0.01;
-    const timeArray = new Float32Array([this.time]);
-
-    this.device.queue.writeBuffer(this.timeBuffer, 0, timeArray);
-
+    renderpass.setVertexBuffer(0, this.planeMesh.buffer!);
     renderpass.setBindGroup(0, this.bindGroup);
-    renderpass.draw(6, 1, 0, 0);
+    renderpass.draw(this.planeMesh.verticies!.length / 2, 1, 0, 0);
     renderpass.end();
 
     this.device.queue.submit([commandEncoder.finish()]);
